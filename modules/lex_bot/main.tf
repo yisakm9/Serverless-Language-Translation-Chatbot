@@ -3,16 +3,11 @@
 # 1. Create the main Lex Bot resource.
 resource "aws_lexv2models_bot" "translation_bot" {
   name                        = var.bot_name
-  data_privacy     {           
-   child_directed = false
+  data_privacy                 { 
+    child_directed = false 
     }
   idle_session_ttl_in_seconds = 300
   role_arn                    = "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots"
-  
-  # This relies on the AWS Service-Linked Role, which Lex creates automatically.
-  # If this role does not exist for some reason, the deployment will fail.
-  # You can ensure it exists by running:
-  # aws iam create-service-linked-role --aws-service-name lexv2.amazonaws.com
 }
 
 # 2. Define a custom slot type for target languages
@@ -23,7 +18,8 @@ resource "aws_lexv2models_slot_type" "language" {
   name        = "Language"
 
   value_selection_setting {
-    resolution_strategy = "TOP_RESOLUTION"
+    # CHANGED: Corrected the case from "TOP_RESOLUTION" to "TopResolution"
+    resolution_strategy = "TopResolution"
   }
   slot_type_values { 
     sample_value { value = "Spanish" }
@@ -31,8 +27,8 @@ resource "aws_lexv2models_slot_type" "language" {
   slot_type_values { 
     sample_value { value = "French" } 
     }
-  slot_type_values {
-     sample_value { value = "German" } 
+  slot_type_values { 
+    sample_value { value = "German" }
      }
 }
 
@@ -44,53 +40,68 @@ resource "aws_lexv2models_intent" "translate_text" {
   name        = "TranslateText"
 
   sample_utterance  {
-     utterance = "Translate {sourceText} to {targetLanguage}" 
-  }
-  sample_utterance  {
+    utterance = "Translate {sourceText} to {targetLanguage}"
+     }
+     sample_utterance  {
      utterance = "How do you say {sourceText} in {targetLanguage}" 
-}
-sample_utterance  {
-     utterance = "In {targetLanguage} what is {sourceText}" 
-}
-
-  slot {
-    name         = "sourceText"
-    slot_type_id = "AMAZON.FreeFormInput"
-    value_elicitation_setting {
-      slot_constraint = "Required"
-      prompt_specification {
-        max_retries = 2
-        message_group {
-          message {
-            plain_text_message {
-              value = "What text would you like to translate?"
-            }
-          }
-        }
-      }
+     }
+     sample_utterance  {
+    utterance = "In {targetLanguage} what is {sourceText}" 
     }
-  }
+  
 
-  slot {
-    name         = "targetLanguage"
-    slot_type_id = aws_lexv2models_slot_type.language.id
-    value_elicitation_setting {
-      slot_constraint = "Required"
-      prompt_specification {
-        max_retries = 2
-        message_group {
-          message {
-            plain_text_message {
-              value = "Which language should I translate it to?"
-            }
-          }
-        }
-      }
-    }
-  }
+  # NOTE: The 'slot' blocks have been REMOVED from here and are now separate resources below.
 
   fulfillment_code_hook {
     enabled = true
+  }
+}
+
+# NEW: Define the 'sourceText' slot as its own resource, linked to the intent
+resource "aws_lexv2models_slot" "source_text" {
+  name         = "sourceText"
+  bot_id       = aws_lexv2models_bot.translation_bot.id
+  bot_version  = "DRAFT"
+  locale_id    = "en_US"
+  intent_id    = aws_lexv2models_intent.translate_text.id
+  slot_type_id = "AMAZON.FreeFormInput"
+
+  value_elicitation_setting {
+    slot_constraint = "Required"
+    prompt_specification {
+      max_retries = 2
+      message_group {
+         message { 
+          plain_text_message {
+             value = "What text would you like to translate?" 
+             } 
+             } 
+             }
+    }
+  }
+}
+
+# NEW: Define the 'targetLanguage' slot as its own resource, linked to the intent
+resource "aws_lexv2models_slot" "target_language" {
+  name         = "targetLanguage"
+  bot_id       = aws_lexv2models_bot.translation_bot.id
+  bot_version  = "DRAFT"
+  locale_id    = "en_US"
+  intent_id    = aws_lexv2models_intent.translate_text.id
+  slot_type_id = aws_lexv2models_slot_type.language.id
+
+  value_elicitation_setting {
+    slot_constraint = "Required"
+    prompt_specification {
+      max_retries = 2
+      message_group {
+         message {
+           plain_text_message { 
+            value = "Which language should I translate it to?"
+             } 
+             } 
+             }
+    }
   }
 }
 
@@ -103,18 +114,19 @@ resource "aws_lambda_permission" "lex_invoke" {
   source_arn    = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/*"
 }
 
-# 5. Define the bot's locale and link the intent to it
+# 5. Define the bot's locale
 resource "aws_lexv2models_bot_locale" "en_us" {
-  bot_id                         = aws_lexv2models_bot.translation_bot.id
-  bot_version                    = "DRAFT"
-  locale_id                      = "en_US"
+  bot_id                           = aws_lexv2models_bot.translation_bot.id
+  bot_version                      = "DRAFT"
+  locale_id                        = "en_US"
   n_lu_intent_confidence_threshold = 0.40
 
   voice_settings {
     voice_id = "Matthew"
     engine   = "neural"
   }
-  depends_on = [aws_lexv2models_intent.translate_text]
+  # This now depends on the slots, which depend on the intent
+  depends_on = [aws_lexv2models_slot.source_text, aws_lexv2models_slot.target_language]
 }
 
 # 6. Create a version of the bot from the DRAFT
