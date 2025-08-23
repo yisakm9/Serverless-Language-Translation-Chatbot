@@ -2,10 +2,10 @@
 
 output "bot_id" {
   description = "The unique ID of the Lex bot."
-  value       = awscc_lex_bot.translation_bot.id
+  value       = aws_lexv2models_bot.translation_bot.id
 }
 
 output "bot_alias_id" {
   description = "The unique ID of the bot alias."
-  value       = awscc_lex_bot_alias.live.id
+  value       = aws_lexv2models_bot_alias.live.bot_alias_id
 }
