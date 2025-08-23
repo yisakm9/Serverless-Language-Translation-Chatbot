@@ -60,7 +60,13 @@ sample_utterance  {
       slot_constraint = "Required"
       prompt_specification {
         max_retries = 2
-        message_group { message { plain_text_message { value = "What text would you like to translate?" } } }
+        message_group {
+          message {
+            plain_text_message {
+              value = "What text would you like to translate?"
+            }
+          }
+        }
       }
     }
   }
@@ -72,7 +78,13 @@ sample_utterance  {
       slot_constraint = "Required"
       prompt_specification {
         max_retries = 2
-        message_group { message { plain_text_message { value = "Which language should I translate it to?" } } }
+        message_group {
+          message {
+            plain_text_message {
+              value = "Which language should I translate it to?"
+            }
+          }
+        }
       }
     }
   }
