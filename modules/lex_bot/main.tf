@@ -13,14 +13,17 @@ resource "awscc_lex_bot" "translation_bot" {
     voice_settings                    = { voice_id = "Matthew" }
 
     intents = [
-      # This is our primary, custom intent
       {
         name        = "TranslateText"
         description = "Intent to translate text"
+        # --- CORRECTED: Sample utterances no longer contain the FreeFormInput slot ---
         sample_utterances = [
-          { utterance = "Translate {sourceText} to {targetLanguage}" },
-          { utterance = "How do you say {sourceText} in {targetLanguage}" }
+          { utterance = "Translate something" },
+          { utterance = "Can you translate for me" },
+          { utterance = "I want to translate to {targetLanguage}" },
+          { utterance = "Translate to {targetLanguage}" }
         ]
+        # --- END of correction ---
         slots = [
           {
             name         = "sourceText"
@@ -51,24 +54,18 @@ resource "awscc_lex_bot" "translation_bot" {
         ]
         fulfillment_code_hook = { enabled = true }
       },
-      
-      # --- ADDED: The required Fallback Intent ---
-      # This tells Lex what to do when it doesn't understand the user.
       {
         name = "FallbackIntent"
-        # This special signature tells Lex to use the built-in fallback behavior.
         parent_intent_signature = "AMAZON.FallbackIntent"
-        # We will provide a simple closing message directly from Lex.
         intent_closing_setting = {
           closing_response = {
             message_groups_list = [{
-              message = { plain_text_message = { value = "Sorry, I didn't understand. You can ask me to translate something, for example: 'Translate hello to Spanish'." } }
+              message = { plain_text_message = { value = "Sorry, I didn't understand. You can ask me to translate something, for example: 'Translate to Spanish'." } }
             }]
           }
         }
       }
-      # --- END of added block ---
-    ] # end intents
+    ]
 
     slot_types = [{
       name = "Language"
