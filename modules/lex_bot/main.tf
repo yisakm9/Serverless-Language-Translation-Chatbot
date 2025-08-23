@@ -136,10 +136,10 @@ resource "aws_lexv2models_bot_version" "v1" {
 
 # 7. Create a stable alias that points to our new version and connects the Lambda
 # CHANGED: Use aws_lexv2_bot_alias for Lex V2 resources
-resource "aws_lexv2_bot_alias" "live" {
-  bot_id      = aws_lexv2models_bot.translation_bot.id
-  name        = "live"
-  bot_version = aws_lexv2models_bot_version.v1.bot_version
+resource "aws_lexv2models_bot_alias" "live" {
+  bot_id         = aws_lexv2models_bot.translation_bot.id
+  bot_alias_name = "live"
+  bot_version    = aws_lexv2models_bot_version.v1.bot_version
 
   bot_alias_locale_settings {
     locale_id = "en_US"
