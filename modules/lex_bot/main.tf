@@ -12,62 +12,68 @@ resource "awscc_lex_bot" "translation_bot" {
     nlu_confidence_threshold          = 0.40
     voice_settings                    = { voice_id = "Matthew" }
 
-    intents = [{
-      name        = "TranslateText"
-      description = "Intent to translate text"
-      sample_utterances = [
-        { utterance = "Translate {sourceText} to {targetLanguage}" },
-        { utterance = "How do you say {sourceText} in {targetLanguage}" }
-      ]
-      
-      slots = [
-        {
-          name         = "sourceText"
-          slot_type_name = "AMAZON.FreeFormInput"
-          value_elicitation_setting = {
-            slot_constraint = "Required"
-            prompt_specification = {
-              max_retries = 2
-              message_groups_list = [{
-                message = {
-                  plain_text_message = {
-                    value = "What text would you like to translate?"
-                  }
-                }
-              }]
+    intents = [
+      # This is our primary, custom intent
+      {
+        name        = "TranslateText"
+        description = "Intent to translate text"
+        sample_utterances = [
+          { utterance = "Translate {sourceText} to {targetLanguage}" },
+          { utterance = "How do you say {sourceText} in {targetLanguage}" }
+        ]
+        slots = [
+          {
+            name         = "sourceText"
+            slot_type_name = "AMAZON.FreeFormInput"
+            value_elicitation_setting = {
+              slot_constraint = "Required"
+              prompt_specification = {
+                max_retries = 2
+                message_groups_list = [{
+                  message = { plain_text_message = { value = "What text would you like to translate?" } }
+                }]
+              }
+            }
+          },
+          {
+            name         = "targetLanguage"
+            slot_type_name = "Language"
+            value_elicitation_setting = {
+              slot_constraint = "Required"
+              prompt_specification = {
+                max_retries = 2
+                message_groups_list = [{
+                  message = { plain_text_message = { value = "Which language should I translate it to?" } }
+                }]
+              }
             }
           }
-        },
-        {
-          name         = "targetLanguage"
-          slot_type_name = "Language"
-           value_elicitation_setting = {
-            slot_constraint = "Required"
-            prompt_specification = {
-              max_retries = 2
-              message_groups_list = [{
-                message = {
-                  plain_text_message = {
-                    value = "Which language should I translate it to?"
-                  }
-                }
-              }]
-            }
+        ]
+        fulfillment_code_hook = { enabled = true }
+      },
+      
+      # --- ADDED: The required Fallback Intent ---
+      # This tells Lex what to do when it doesn't understand the user.
+      {
+        name = "FallbackIntent"
+        # This special signature tells Lex to use the built-in fallback behavior.
+        parent_intent_signature = "AMAZON.FallbackIntent"
+        # We will provide a simple closing message directly from Lex.
+        intent_closing_setting = {
+          closing_response = {
+            message_groups_list = [{
+              message = { plain_text_message = { value = "Sorry, I didn't understand. You can ask me to translate something, for example: 'Translate hello to Spanish'." } }
+            }]
           }
         }
-      ]
-
-      fulfillment_code_hook = {
-        enabled = true
       }
-    }]
+      # --- END of added block ---
+    ] # end intents
 
     slot_types = [{
       name = "Language"
       description = "Languages for translation"
-      value_selection_setting = {
-        resolution_strategy = "TOP_RESOLUTION"
-      }
+      value_selection_setting = { resolution_strategy = "TOP_RESOLUTION" }
       slot_type_values = [
         { sample_value = { value = "Spanish" } },
         { sample_value = { value = "French" } },
@@ -91,9 +97,7 @@ resource "awscc_lex_bot_version" "v1" {
   bot_id      = awscc_lex_bot.translation_bot.id
   bot_version_locale_specification = [{
     locale_id = "en_US"
-    bot_version_locale_details = {
-      source_bot_version = "DRAFT"
-    }
+    bot_version_locale_details = { source_bot_version = "DRAFT" }
   }]
 }
 
@@ -105,9 +109,7 @@ resource "awscc_lex_bot_alias" "live" {
 
   bot_alias_locale_settings = [{
     locale_id = "en_US"
-    # The 'bot_alias_locale_setting' block contains the configuration FOR that locale
     bot_alias_locale_setting = {
-      # CORRECTED: 'enabled' has been moved inside this block
       enabled   = true
       code_hook_specification = {
         lambda_code_hook = {
