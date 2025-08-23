@@ -1,3 +1,4 @@
+# modules/lex_bot/outputs.tf
 
 output "bot_id" {
   description = "The unique ID of the Lex bot."

@@ -31,6 +31,6 @@ module "lex_bot" {
 
   bot_name            = "${var.project_name}-bot-dev"
   lambda_function_arn = module.lambda_function.lambda_function_arn # Use output from the Lambda module
-  aws_region          = data.aws_region.current.name
+  aws_region          = data.aws_region.current.id
   aws_account_id      = data.aws_caller_identity.current.account_id
 }
