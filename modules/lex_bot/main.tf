@@ -1,3 +1,5 @@
+# modules/lex_bot/main.tf
+
 # 1. Create the Lex Bot using the awscc provider
 resource "awscc_lex_bot" "translation_bot" {
   name                         = var.bot_name
@@ -5,13 +7,11 @@ resource "awscc_lex_bot" "translation_bot" {
   idle_session_ttl_in_seconds  = 300
   role_arn                     = "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots"
 
-  # The awscc provider requires defining at least one locale at creation time
   bot_locales = [{
     locale_id                         = "en_US"
     nlu_confidence_threshold          = 0.40
     voice_settings                    = { voice_id = "Matthew" }
 
-    # Define intents and slots directly inside the locale
     intents = [{
       name        = "TranslateText"
       description = "Intent to translate text"
@@ -20,7 +20,6 @@ resource "awscc_lex_bot" "translation_bot" {
         { utterance = "How do you say {sourceText} in {targetLanguage}" }
       ]
       
-      # Define slots for this intent
       slots = [
         {
           name         = "sourceText"
@@ -41,7 +40,7 @@ resource "awscc_lex_bot" "translation_bot" {
         },
         {
           name         = "targetLanguage"
-          slot_type_name = "Language" # Reference our custom slot type name
+          slot_type_name = "Language"
            value_elicitation_setting = {
             slot_constraint = "Required"
             prompt_specification = {
@@ -56,15 +55,13 @@ resource "awscc_lex_bot" "translation_bot" {
             }
           }
         }
-      ] # end slots
+      ]
 
-      # Connect the intent to the Lambda function
       fulfillment_code_hook = {
         enabled = true
       }
-    }] # end intents
+    }]
 
-    # Define custom slot types for this locale
     slot_types = [{
       name = "Language"
       description = "Languages for translation"
@@ -76,17 +73,16 @@ resource "awscc_lex_bot" "translation_bot" {
         { sample_value = { value = "French" } },
         { sample_value = { value = "German" } },
       ]
-    }] # end slot_types
-  }] # end bot_locales
+    }]
+  }]
 }
 
-# 2. Grant Lex permission to invoke Lambda (using the standard 'aws' provider)
+# 2. Grant Lex permission to invoke Lambda
 resource "aws_lambda_permission" "lex_invoke" {
   statement_id  = "AllowLexToInvokeLambda"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
   principal     = "lexv2.amazonaws.com"
-  # awscc resources use .arn instead of .id for the ARN
   source_arn    = "${awscc_lex_bot.translation_bot.arn}-alias/*" 
 }
 
@@ -109,8 +105,10 @@ resource "awscc_lex_bot_alias" "live" {
 
   bot_alias_locale_settings = [{
     locale_id = "en_US"
-    enabled   = true
+    # The 'bot_alias_locale_setting' block contains the configuration FOR that locale
     bot_alias_locale_setting = {
+      # CORRECTED: 'enabled' has been moved inside this block
+      enabled   = true
       code_hook_specification = {
         lambda_code_hook = {
           code_hook_interface_version = "1.0"
