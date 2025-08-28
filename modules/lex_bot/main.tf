@@ -10,7 +10,8 @@ resource "aws_lexv2models_bot" "translation_bot" {
     child_directed = false
   }
   idle_session_ttl_in_seconds = 300
-  role_arn                    = "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/lex.amazonaws.com/AWSServiceRoleForLexBots"
+  role_arn = aws_iam_service_linked_role.lexv2.arn
+
 }
 
 # 2. Define the bot's locale
@@ -144,8 +145,9 @@ resource "aws_lambda_permission" "lex_invoke" {
   # so we construct the ARN with the bot ID and the alias name.
   # A more robust solution might involve using the aws_lexv2models_bot_alias resource
   # if your provider version supports it.
-  source_arn = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/*"
+   source_arn = aws_lex_bot_alias.live.arn
 }
+
 # 8. Create a version of the bot from the DRAFT
 # Corrected: Renamed to aws_lexv2models_bot_version
 resource "aws_lexv2models_bot_version" "v1" {
@@ -171,7 +173,8 @@ resource "aws_lex_bot_alias" "live" {
   bot_version = aws_lexv2models_bot_version.v1.bot_version
 
   conversation_logs {
-    iam_role_arn = "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/lex.amazonaws.com/AWSServiceRoleForLexBots" # Example role, adjust as needed
+    
+    iam_role_arn = aws_iam_service_linked_role.lexv2.arn
     log_settings {
       destination = "CLOUDWATCH_LOGS"
       log_type    = "TEXT"
