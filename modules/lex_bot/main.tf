@@ -3,6 +3,10 @@ resource "aws_iam_service_linked_role" "lexv2" {
   aws_service_name = "lexv2.amazonaws.com"
 }
 
+# which the aws_lex_bot_alias resource implicitly requires.
+resource "aws_iam_service_linked_role" "lex" {
+  aws_service_name = "lex.amazonaws.com"
+}
 # Corrected: Renamed to aws_lexv2models_bot
 resource "aws_lexv2models_bot" "translation_bot" {
   name                        = var.bot_name
