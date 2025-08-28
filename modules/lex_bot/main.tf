@@ -78,49 +78,23 @@ resource "aws_lexv2models_slot" "source_text" {
       message_selection_strategy = "Random"
       max_retries                = 2
 
-      # THIS ENTIRE BLOCK IS RESTRUCTURED TO FIX THE PROVIDER BUG
-      prompt_attempts_specification = {
-        "Initial" = {
-          allowed_input_types = {
-        allow_audio_input = true
-        allow_dtmf_input  = true
-          }
-          message_group {
+      message_group {
         message {
           plain_text_message {
             value = "What text would you like to translate?"
           }
         }
-          }
-        }
-        "Retry1" = {
-          allowed_input_types = {
-        allow_audio_input = true
-        allow_dtmf_input  = true
-          }
-          message_group {
-        message {
-          plain_text_message {
-            value = "Sorry, what was the text you wanted to translate?"
-          }
-        }
-          }
-        }
-        "Retry2" = {
-          allowed_input_types = {
-        allow_audio_input = true
-        allow_dtmf_input  = true
-          }
-          message_group {
-        message {
-          plain_text_message {
-            value = "Please tell me the text to translate."
-          }
-        }
-          }
-        }
       }
     }
+  }
+
+  # WORKAROUND: Ignore changes to this block due to a known AWS provider bug.
+  # AWS API auto-generates a complex 'prompt_attempts_specification' that
+  # causes a permanent diff. This tells Terraform not to check it after creation.
+  lifecycle {
+    ignore_changes = [
+      value_elicitation_setting[0].prompt_specification[0].prompt_attempts_specification,
+    ]
   }
 }
 
@@ -139,49 +113,21 @@ resource "aws_lexv2models_slot" "target_language" {
       message_selection_strategy = "Random"
       max_retries                = 2
       
-      # THIS ENTIRE BLOCK IS RESTRUCTURED TO FIX THE PROVIDER BUG
-      prompt_attempts_specification = {
-        "Initial" = {
-          allowed_input_types = {
-            allow_audio_input = true
-            allow_dtmf_input  = true
-          }
-          message_group {
-            message {
-              plain_text_message {
-                value = "Which language should I translate it to?"
-              }
-            }
-          }
-        }
-        "Retry1" = {
-          allowed_input_types = {
-            allow_audio_input = true
-            allow_dtmf_input  = true
-          }
-          message_group {
-            message {
-              plain_text_message {
-                value = "Sorry, what language should I translate to?"
-              }
-            }
-          }
-        }
-        "Retry2" = {
-          allowed_input_types = {
-            allow_audio_input = true
-            allow_dtmf_input  = true
-          }
-          message_group {
-            message {
-              plain_text_message {
-                value = "Please tell me the target language."
-              }
-            }
+      message_group {
+        message {
+          plain_text_message {
+            value = "Which language should I translate it to?"
           }
         }
       }
     }
+  }
+  
+  # WORKAROUND: Ignore changes to this block due to a known AWS provider bug.
+  lifecycle {
+    ignore_changes = [
+      value_elicitation_setting[0].prompt_specification[0].prompt_attempts_specification,
+    ]
   }
 }
 # 6. Define the mandatory Fallback Intent
