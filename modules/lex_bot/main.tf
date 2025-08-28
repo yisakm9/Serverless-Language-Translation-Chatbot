@@ -1,3 +1,7 @@
+# Add this resource to ensure the Lex Service-Linked Role exists
+resource "aws_iam_service_linked_role" "lexv2" {
+  aws_service_name = "lexv2.amazonaws.com"
+}
 
 # Corrected: Renamed to aws_lexv2models_bot
 resource "aws_lexv2models_bot" "translation_bot" {
