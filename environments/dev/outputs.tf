@@ -5,9 +5,16 @@ output "lex_bot_id" {
   value       = module.lex_bot.bot_id
 }
 
-output "lex_bot_alias_id" {
-  description = "The Alias ID for the 'live' version of the bot."
-  value       = module.lex_bot.bot_alias_id
+# Corrected: Changed to match the new output from the module
+output "lex_bot_alias_name" {
+  description = "The Alias Name for the 'live' version of the bot."
+  value       = module.lex_bot.bot_alias_name
+}
+
+# Recommended: Also output the ARN, as it's very useful
+output "lex_bot_alias_arn" {
+  description = "The ARN for the 'live' alias of the bot."
+  value       = module.lex_bot.bot_alias_arn
 }
 
 output "lambda_function_arn" {
