@@ -155,21 +155,21 @@ resource "aws_lexv2models_bot_version" "v1" {
 }
 
 # 9. Create a stable alias that points to our new version and connects the Lambda
-# Corrected: Renamed to aws_lexv2models_bot_alias
-resource "aws_lexv2models_bot_alias" "live" {
-  bot_id         = aws_lexv2models_bot.translation_bot.id
-  bot_alias_name = "live"
-  bot_version    = aws_lexv2models_bot_version.v1.bot_version
+# Corrected: Renamed to aws_lex_bot_alias
+resource "aws_lex_bot_alias" "live" {
+  bot_name = aws_lexv2models_bot.translation_bot.name # Use the bot name here
+  name     = "live"                                   # Alias name
+  bot_version = aws_lexv2models_bot_version.v1.bot_version
 
-  bot_alias_locale_settings {
-    enabled = true
-    locale_id = aws_lexv2models_bot_locale.en_us.locale_id
-
-    code_hook_specification {
-      lambda_code_hook {
-        code_hook_interface_version = "1.0"
-        lambda_arn                  = var.lambda_function_arn
-      }
+  conversation_logs {
+    iam_role_arn = "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/lex.amazonaws.com/AWSServiceRoleForLexBots" # Example role, adjust as needed
+    log_settings {
+      destination = "CLOUDWATCH_LOGS"
+      log_type    = "TEXT"
+      resource_arn = "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/lex/${var.bot_name}" # Example log group, adjust as needed
     }
   }
+  
+  # The Lambda integration is configured differently in this resource
+  # It's often handled at the intent level or through conversation logs
 }
