@@ -70,18 +70,23 @@ resource "aws_lexv2models_intent" "translate_text" {
 }
 
 # 5. Define the slots for the 'TranslateText' intent
-# Corrected: Renamed to aws_lexv2models_slot
+# Corrected: Added explicit values for allow_interrupt and message_selection_strategy
 resource "aws_lexv2models_slot" "source_text" {
   name         = "sourceText"
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
   intent_id    = aws_lexv2models_intent.translate_text.intent_id
-  slot_type_id = "AMAZON.FreeFormInput" # Note: Built-in types are referenced by name, not ARN/ID
+  slot_type_id = "AMAZON.FreeFormInput"
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
       max_retries = 2
+      
+      # Add these two lines to match AWS API defaults
+      allow_interrupt            = true
+      message_selection_strategy = "Random"
+
       message_group {
         message {
           plain_text_message {
@@ -92,8 +97,8 @@ resource "aws_lexv2models_slot" "source_text" {
     }
   }
 }
-
 # Corrected: Renamed to aws_lexv2models_slot
+# Corrected: Added explicit values for allow_interrupt and message_selection_strategy
 resource "aws_lexv2models_slot" "target_language" {
   name         = "targetLanguage"
   bot_id       = aws_lexv2models_bot.translation_bot.id
@@ -105,6 +110,11 @@ resource "aws_lexv2models_slot" "target_language" {
     slot_constraint = "Required"
     prompt_specification {
       max_retries = 2
+
+      # Add these two lines to match AWS API defaults
+      allow_interrupt            = true
+      message_selection_strategy = "Random"
+
       message_group {
         message {
           plain_text_message {
@@ -115,7 +125,6 @@ resource "aws_lexv2models_slot" "target_language" {
     }
   }
 }
-
 
 
 # 7. Grant Lex permission to invoke Lambda
