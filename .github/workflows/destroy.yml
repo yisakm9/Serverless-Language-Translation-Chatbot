@@ -49,15 +49,15 @@ jobs:
         id: init
         run: terraform init
 
-#      - name: Safety Check
- #       id: safety_check
-  #      run: |
-   #       if [ "${{ github.event.inputs.confirmation }}" == "${CONFIRMATION_PHRASE}" ]; then
-    #        echo "Confirmation matches. Proceeding with destroy."
-     #     else
-      #      echo "Error: Confirmation phrase does not match. Expected '${CONFIRMATION_PHRASE}' but got '${{ github.event.inputs.confirmation }}'."
-       #     exit 1
-        #  fi
+      - name: Safety Check
+        id: safety_check
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" == "${CONFIRMATION_PHRASE}" ]; then
+            echo "Confirmation matches. Proceeding with destroy."
+          else
+            echo "Error: Confirmation phrase does not match. Expected '${CONFIRMATION_PHRASE}' but got '${{ github.event.inputs.confirmation }}'."
+            exit 1
+          fi
 
       - name: Terraform Destroy
         id: destroy
