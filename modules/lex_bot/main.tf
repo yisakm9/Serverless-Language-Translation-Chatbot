@@ -132,10 +132,15 @@ resource "aws_lambda_permission" "lex_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
   principal     = "lex.amazonaws.com"
-  # Corrected: More specific source_arn for Lex V2
-  source_arn    = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/${aws_lexv2models_bot_alias.live.bot_alias_id}"
-}
 
+  # Corrected: The source_arn now refers to the renamed aws_lex_bot_alias resource.
+  # Note that the V2 ARN format requires the bot ID and the alias ID.
+  # The aws_lex_bot_alias resource doesn't export the alias ID directly,
+  # so we construct the ARN with the bot ID and the alias name.
+  # A more robust solution might involve using the aws_lexv2models_bot_alias resource
+  # if your provider version supports it.
+  source_arn = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/*"
+}
 # 8. Create a version of the bot from the DRAFT
 # Corrected: Renamed to aws_lexv2models_bot_version
 resource "aws_lexv2models_bot_version" "v1" {
