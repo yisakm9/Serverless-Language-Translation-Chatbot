@@ -63,27 +63,60 @@ resource "aws_lexv2models_intent" "translate_text" {
 }
 
 # 5. Define the slots for the 'TranslateText' intent
-# Corrected: Renamed to aws_lexv2models_slot
 resource "aws_lexv2models_slot" "source_text" {
   name         = "sourceText"
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.intent_id # Corrected attribute
+  intent_id    = aws_lexv2models_intent.translate_text.intent_id
   slot_type_id = "AMAZON.FreeFormInput"
+
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
-      # ADDED THESE LINES TO FIX PROVIDER BUG
-      allow_interrupt = true
+      allow_interrupt            = true
       message_selection_strategy = "Random"
-      # END ADDED LINES
+      max_retries                = 2
 
-      max_retries = 2
-      message_group {
+      # THIS ENTIRE BLOCK IS RESTRUCTURED TO FIX THE PROVIDER BUG
+      prompt_attempts_specification = {
+        "Initial" = {
+          allowed_input_types = {
+        allow_audio_input = true
+        allow_dtmf_input  = true
+          }
+          message_group {
         message {
           plain_text_message {
             value = "What text would you like to translate?"
+          }
+        }
+          }
+        }
+        "Retry1" = {
+          allowed_input_types = {
+        allow_audio_input = true
+        allow_dtmf_input  = true
+          }
+          message_group {
+        message {
+          plain_text_message {
+            value = "Sorry, what was the text you wanted to translate?"
+          }
+        }
+          }
+        }
+        "Retry2" = {
+          allowed_input_types = {
+        allow_audio_input = true
+        allow_dtmf_input  = true
+          }
+          message_group {
+        message {
+          plain_text_message {
+            value = "Please tell me the text to translate."
+          }
+        }
           }
         }
       }
@@ -91,27 +124,60 @@ resource "aws_lexv2models_slot" "source_text" {
   }
 }
 
-# Corrected: Renamed to aws_lexv2models_slot
 resource "aws_lexv2models_slot" "target_language" {
   name         = "targetLanguage"
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.intent_id # Corrected attribute
-  slot_type_id = aws_lexv2models_slot_type.language.slot_type_id # Corrected attribute
+  intent_id    = aws_lexv2models_intent.translate_text.intent_id
+  slot_type_id = aws_lexv2models_slot_type.language.slot_type_id
+
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
-      # ADDED THESE LINES TO FIX PROVIDER BUG
-      allow_interrupt = true
+      allow_interrupt            = true
       message_selection_strategy = "Random"
-      # END ADDED LINES
-
-      max_retries = 2
-      message_group {
-        message {
-          plain_text_message {
-            value = "Which language should I translate it to?"
+      max_retries                = 2
+      
+      # THIS ENTIRE BLOCK IS RESTRUCTURED TO FIX THE PROVIDER BUG
+      prompt_attempts_specification = {
+        "Initial" = {
+          allowed_input_types = {
+            allow_audio_input = true
+            allow_dtmf_input  = true
+          }
+          message_group {
+            message {
+              plain_text_message {
+                value = "Which language should I translate it to?"
+              }
+            }
+          }
+        }
+        "Retry1" = {
+          allowed_input_types = {
+            allow_audio_input = true
+            allow_dtmf_input  = true
+          }
+          message_group {
+            message {
+              plain_text_message {
+                value = "Sorry, what language should I translate to?"
+              }
+            }
+          }
+        }
+        "Retry2" = {
+          allowed_input_types = {
+            allow_audio_input = true
+            allow_dtmf_input  = true
+          }
+          message_group {
+            message {
+              plain_text_message {
+                value = "Please tell me the target language."
+              }
+            }
           }
         }
       }
