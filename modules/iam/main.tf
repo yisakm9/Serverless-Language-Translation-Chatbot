@@ -1,5 +1,5 @@
 
-# 1. Define the trust policy that allows Lambda to assume this role
+# 1. Define the trust policy that allows Lambda to assume this  role
 data "aws_iam_policy_document" "lambda_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
