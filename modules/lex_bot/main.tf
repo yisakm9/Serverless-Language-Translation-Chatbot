@@ -115,7 +115,7 @@ resource "aws_lexv2models_intent" "fallback" {
   bot_id                  = aws_lexv2models_bot.translation_bot.id
   bot_version             = "DRAFT"
   locale_id               = aws_lexv2models_bot_locale.en_us.locale_id
-  name                    = "FallbackIntent"
+  name                    = "FallbackIntent2"
   parent_intent_signature = "AMAZON.FallbackIntent"
 }
 
