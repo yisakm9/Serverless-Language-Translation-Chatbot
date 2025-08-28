@@ -8,13 +8,13 @@ on:
         description: 'Safety check. Type the word "destroy" to confirm.'
         required: true
         default: 'do-not-destroy'
-  push:
-        branches:
-          - main
-        paths:
-          - "environments/dev/**"
-          - "modules/**"
-          - "src/**"
+  #push:
+   #     branches:
+    #      - main
+     #   paths:
+      #    - "environments/dev/**"
+       #   - "modules/**"
+        #  - "src/**"
       
 
 jobs:
