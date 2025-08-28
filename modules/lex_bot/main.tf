@@ -76,7 +76,7 @@ resource "aws_lexv2models_slot" "source_text" {
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.id
+  intent_id    = aws_lexv2models_intent.translate_text.intent_id
   slot_type_id = "AMAZON.FreeFormInput" # Note: Built-in types are referenced by name, not ARN/ID
   value_elicitation_setting {
     slot_constraint = "Required"
@@ -99,8 +99,8 @@ resource "aws_lexv2models_slot" "target_language" {
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.id
-  slot_type_id = aws_lexv2models_slot_type.language.id
+  intent_id    = aws_lexv2models_intent.translate_text.intent_id
+  slot_type_id = aws_lexv2models_slot_type.language.slot_type_id
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
@@ -116,15 +116,7 @@ resource "aws_lexv2models_slot" "target_language" {
   }
 }
 
-# 6. Define the mandatory Fallback Intent
-# Corrected: Renamed to aws_lexv2models_intent
-resource "aws_lexv2models_intent" "fallback" {
-  bot_id                  = aws_lexv2models_bot.translation_bot.id
-  bot_version             = "DRAFT"
-  locale_id               = aws_lexv2models_bot_locale.en_us.locale_id
-  name                    = "FallbackIntent"
-  parent_intent_signature = "AMAZON.FallbackIntent"
-}
+
 
 # 7. Grant Lex permission to invoke Lambda
 resource "aws_lambda_permission" "lex_invoke" {
@@ -153,7 +145,6 @@ resource "aws_lexv2models_bot_version" "v1" {
   # Ensure all intents and slots are created before versioning
   depends_on = [
     aws_lexv2models_intent.translate_text,
-    aws_lexv2models_intent.fallback,
     aws_lexv2models_slot.source_text,
     aws_lexv2models_slot.target_language
   ]
