@@ -63,10 +63,10 @@ resource "aws_lexv2models_intent" "translate_text" {
   }
 
   # Added: Explicit dependency on the slots it uses
-  depends_on = [
-    aws_lexv2models_slot.source_text,
-    aws_lexv2models_slot.target_language
-  ]
+  # depends_on = [
+  #  aws_lexv2models_slot.source_text,
+  #  aws_lexv2models_slot.target_language
+  #]
 }
 
 # 5. Define the slots for the 'TranslateText' intent
