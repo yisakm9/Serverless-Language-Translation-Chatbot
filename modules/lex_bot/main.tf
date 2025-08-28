@@ -175,6 +175,11 @@ resource "aws_lex_bot_alias" "live" {
   bot_name = aws_lexv2models_bot.translation_bot.name # Use the bot name here
   name     = "live"                                   # Alias name
   bot_version = aws_lexv2models_bot_version.v1.bot_version
+# ADD THIS BLOCK to explicitly tell the alias to wait for the roles.
+      depends_on = [
+        aws_iam_service_linked_role.lex,
+        aws_iam_service_linked_role.lexv2
+        ]
 
   conversation_logs {
     
