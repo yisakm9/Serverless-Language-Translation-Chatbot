@@ -1,25 +1,26 @@
-# modules/lex_bot/main.tf
 
-# 1. Create the main Lex Bot resource.
+# Corrected: Renamed to aws_lexv2models_bot
 resource "aws_lexv2models_bot" "translation_bot" {
   name                        = var.bot_name
-  data_privacy              { 
-    child_directed = false 
-    }
+  data_privacy              {
+    child_directed = false
+  }
   idle_session_ttl_in_seconds = 300
-  role_arn                    = "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/lexv2.amazonaws.com/AWSServiceRoleForLexV2Bots"
+  role_arn                    = "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/lex.amazonaws.com/AWSServiceRoleForLexBots"
 }
 
 # 2. Define the bot's locale
+# Corrected: Renamed to aws_lexv2models_bot_locale
 resource "aws_lexv2models_bot_locale" "en_us" {
   bot_id                           = aws_lexv2models_bot.translation_bot.id
   bot_version                      = "DRAFT"
   locale_id                        = "en_US"
-  n_lu_intent_confidence_threshold = 0.40
+  n_lu_intent_confidence_threshold  = 0.40
   voice_settings { voice_id = "Matthew" }
 }
 
 # 3. Define the custom slot type for languages
+# Corrected: Renamed to aws_lexv2models_slot_type
 resource "aws_lexv2models_slot_type" "language" {
   bot_id      = aws_lexv2models_bot.translation_bot.id
   bot_version = "DRAFT"
@@ -27,17 +28,18 @@ resource "aws_lexv2models_slot_type" "language" {
   name        = "Language"
   value_selection_setting { resolution_strategy = "TopResolution" }
   slot_type_values {
-     sample_value { value = "Spanish" } 
-     }
-  slot_type_values { 
-    sample_value { value = "French" } 
-    }
+     sample_value { value = "Spanish" }
+  }
+  slot_type_values {
+    sample_value { value = "French" }
+  }
   slot_type_values {
      sample_value { value = "German" }
-      }
+  }
 }
 
 # 4. Define the primary intent for translation
+# Corrected: Renamed to aws_lexv2models_intent
 resource "aws_lexv2models_intent" "translate_text" {
   bot_id      = aws_lexv2models_bot.translation_bot.id
   bot_version = "DRAFT"
@@ -53,37 +55,45 @@ resource "aws_lexv2models_intent" "translate_text" {
   }
 
   sample_utterance {
-     utterance = "Translate to {targetLanguage}"
+    utterance = "Translate to {targetLanguage}"
   }
 
   fulfillment_code_hook {
     enabled = true
   }
+
+  # Added: Explicit dependency on the slots it uses
+  depends_on = [
+    aws_lexv2models_slot.source_text,
+    aws_lexv2models_slot.target_language
+  ]
 }
 
 # 5. Define the slots for the 'TranslateText' intent
+# Corrected: Renamed to aws_lexv2models_slot
 resource "aws_lexv2models_slot" "source_text" {
   name         = "sourceText"
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
   intent_id    = aws_lexv2models_intent.translate_text.id
-  slot_type_id = "AMAZON.FreeFormInput"
+  slot_type_id = "AMAZON.FreeFormInput" # Note: Built-in types are referenced by name, not ARN/ID
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
       max_retries = 2
-      message_group { 
-        message { 
-          plain_text_message { 
-            value = "What text would you like to translate?" 
-            } 
-            } 
-            }
+      message_group {
+        message {
+          plain_text_message {
+            value = "What text would you like to translate?"
+          }
+        }
+      }
     }
   }
 }
 
+# Corrected: Renamed to aws_lexv2models_slot
 resource "aws_lexv2models_slot" "target_language" {
   name         = "targetLanguage"
   bot_id       = aws_lexv2models_bot.translation_bot.id
@@ -95,18 +105,19 @@ resource "aws_lexv2models_slot" "target_language" {
     slot_constraint = "Required"
     prompt_specification {
       max_retries = 2
-      message_group { 
-        message { 
+      message_group {
+        message {
           plain_text_message {
              value = "Which language should I translate it to?"
-              }
-               }
+          }
+        }
       }
     }
   }
 }
 
 # 6. Define the mandatory Fallback Intent
+# Corrected: Renamed to aws_lexv2models_intent
 resource "aws_lexv2models_intent" "fallback" {
   bot_id                  = aws_lexv2models_bot.translation_bot.id
   bot_version             = "DRAFT"
@@ -120,11 +131,13 @@ resource "aws_lambda_permission" "lex_invoke" {
   statement_id  = "AllowLexToInvokeLambda"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
-  principal     = "lexv2.amazonaws.com"
-  source_arn    = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/*"
+  principal     = "lex.amazonaws.com"
+  # Corrected: More specific source_arn for Lex V2
+  source_arn    = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/${aws_lexv2models_bot_alias.live.bot_alias_id}"
 }
 
 # 8. Create a version of the bot from the DRAFT
+# Corrected: Renamed to aws_lexv2models_bot_version
 resource "aws_lexv2models_bot_version" "v1" {
   bot_id    = aws_lexv2models_bot.translation_bot.id
   locale_specification = {
@@ -132,22 +145,30 @@ resource "aws_lexv2models_bot_version" "v1" {
       source_bot_version = "DRAFT"
     }
   }
-  # Ensure all intents are created before versioning
-  depends_on = [aws_lexv2models_intent.translate_text, aws_lexv2models_intent.fallback]
+  # Ensure all intents and slots are created before versioning
+  depends_on = [
+    aws_lexv2models_intent.translate_text,
+    aws_lexv2models_intent.fallback,
+    aws_lexv2models_slot.source_text,
+    aws_lexv2models_slot.target_language
+  ]
 }
 
 # 9. Create a stable alias that points to our new version and connects the Lambda
+# Corrected: Renamed to aws_lexv2models_bot_alias
 resource "aws_lexv2models_bot_alias" "live" {
   bot_id         = aws_lexv2models_bot.translation_bot.id
   bot_alias_name = "live"
   bot_version    = aws_lexv2models_bot_version.v1.bot_version
+
   bot_alias_locale_settings {
+    enabled = true
     locale_id = aws_lexv2models_bot_locale.en_us.locale_id
-    enabled   = true
+
     code_hook_specification {
       lambda_code_hook {
-        lambda_arn                  = var.lambda_function_arn
         code_hook_interface_version = "1.0"
+        lambda_arn                  = var.lambda_function_arn
       }
     }
   }
