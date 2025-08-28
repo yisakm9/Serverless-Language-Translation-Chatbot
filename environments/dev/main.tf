@@ -29,7 +29,9 @@ module "lambda_function" {
 module "lex_bot" {
   source = "../../modules/lex_bot" # Path to the module
 
-  bot_name            = "${var.project_name}-bot-dev"
+  # Corrected: Replaced all hyphens with underscores to create a valid name.
+  bot_name            = "${replace(var.project_name, "-", "_")}_bot_dev"
+  
   lambda_function_arn = module.lambda_function.lambda_function_arn # Use output from the Lambda module
   aws_region          = data.aws_region.current.id
   aws_account_id      = data.aws_caller_identity.current.account_id
