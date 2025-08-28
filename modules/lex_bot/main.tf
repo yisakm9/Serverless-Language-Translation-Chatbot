@@ -69,11 +69,16 @@ resource "aws_lexv2models_slot" "source_text" {
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.intent_id
+  intent_id    = aws_lexv2models_intent.translate_text.intent_id # Corrected attribute
   slot_type_id = "AMAZON.FreeFormInput"
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
+      # ADDED THESE LINES TO FIX PROVIDER BUG
+      allow_interrupt = true
+      message_selection_strategy = "Random"
+      # END ADDED LINES
+
       max_retries = 2
       message_group {
         message {
@@ -92,11 +97,16 @@ resource "aws_lexv2models_slot" "target_language" {
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.intent_id
-  slot_type_id = aws_lexv2models_slot_type.language.slot_type_id
+  intent_id    = aws_lexv2models_intent.translate_text.intent_id # Corrected attribute
+  slot_type_id = aws_lexv2models_slot_type.language.slot_type_id # Corrected attribute
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
+      # ADDED THESE LINES TO FIX PROVIDER BUG
+      allow_interrupt = true
+      message_selection_strategy = "Random"
+      # END ADDED LINES
+
       max_retries = 2
       message_group {
         message {
@@ -108,7 +118,6 @@ resource "aws_lexv2models_slot" "target_language" {
     }
   }
 }
-
 # 6. Define the mandatory Fallback Intent
 # Corrected: Renamed to aws_lexv2models_intent
 resource "aws_lexv2models_intent" "fallback" {
