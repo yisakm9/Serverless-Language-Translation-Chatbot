@@ -1,9 +1,10 @@
 # environments/dev/outputs.tf
-
+/*
 output "lex_bot_id" {
   description = "The ID of the deployed Amazon Lex bot. Use this ID in the AWS Console to find your bot."
   value       = module.lex_bot.bot_id
 }
+*/
 
 # Corrected: Changed to match the new output from the module
 output "lex_bot_alias_name" {
