@@ -1,101 +1,98 @@
-# Add this resource to ensure the Lex Service-Linked Role exists
+
+
+# 1. IAM Service-Linked Role for LexV2
 resource "aws_iam_service_linked_role" "lexv2" {
   aws_service_name = "lexv2.amazonaws.com"
 }
 
-# which the aws_lex_bot_alias resource implicitly requires.
-resource "aws_iam_service_linked_role" "lex" {
-  aws_service_name = "lex.amazonaws.com"
+# 2. IAM Role for the Lex Bot to execute and call other services
+resource "aws_iam_role" "lex_bot_role" {
+  name = "${var.bot_name}-execution-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "lexv2.amazonaws.com" }
+    }]
+  })
 }
-# Corrected: Renamed to aws_lexv2models_bot
+
+# 3. Define the Lex V2 Bot
 resource "aws_lexv2models_bot" "translation_bot" {
   name                        = var.bot_name
-  data_privacy              {
+  idle_session_ttl_in_seconds = 300
+  role_arn                    = aws_iam_role.lex_bot_role.arn
+
+  data_privacy {
     child_directed = false
   }
-  idle_session_ttl_in_seconds = 300
-  role_arn = aws_iam_service_linked_role.lexv2.arn
 
+  depends_on = [aws_iam_service_linked_role.lexv2]
 }
 
-# 2. Define the bot's locale
-# Corrected: Renamed to aws_lexv2models_bot_locale
+# 4. Define the bot's locale
 resource "aws_lexv2models_bot_locale" "en_us" {
-  bot_id                           = aws_lexv2models_bot.translation_bot.id
-  bot_version                      = "DRAFT"
-  locale_id                        = "en_US"
-  n_lu_intent_confidence_threshold  = 0.40
-  voice_settings { voice_id = "Matthew" }
+  bot_id      = aws_lexv2models_bot.translation_bot.id
+  bot_version = "DRAFT"
+  locale_id   = "en_US"
+  n_lu_intent_confidence_threshold = 0.40
+  voice_settings {
+    voice_id = "Matthew"
+  }
 }
 
-# 3. Define the custom slot type for languages
-# Corrected: Renamed to aws_lexv2models_slot_type
+# 5. Define the custom slot type for languages
 resource "aws_lexv2models_slot_type" "language" {
   bot_id      = aws_lexv2models_bot.translation_bot.id
   bot_version = "DRAFT"
   locale_id   = aws_lexv2models_bot_locale.en_us.locale_id
   name        = "Language"
-  value_selection_setting { resolution_strategy = "TopResolution" }
+  value_selection_setting {
+    resolution_strategy = "TopResolution"
+  }
   slot_type_values {
-     sample_value { value = "Spanish" }
+    sample_value { value = "Spanish" }
   }
   slot_type_values {
     sample_value { value = "French" }
   }
   slot_type_values {
-     sample_value { value = "German" }
+    sample_value { value = "German" }
   }
 }
 
-# 4. Define the primary intent for translation
-# Corrected: Renamed to aws_lexv2models_intent
+# 6. Define the primary intent for translation
 resource "aws_lexv2models_intent" "translate_text" {
   bot_id      = aws_lexv2models_bot.translation_bot.id
   bot_version = "DRAFT"
   locale_id   = aws_lexv2models_bot_locale.en_us.locale_id
   name        = "TranslateText"
 
-  sample_utterance {
-    utterance = "Translate something"
-  }
-
-  sample_utterance {
-    utterance = "Can you translate for me"
-  }
-
-  sample_utterance {
-    utterance = "Translate to {targetLanguage}"
-  }
+  sample_utterance { utterance = "Translate something" }
+  sample_utterance { utterance = "Can you translate for me" }
+  sample_utterance { utterance = "Translate to {targetLanguage}" }
 
   fulfillment_code_hook {
     enabled = true
   }
-
-  # Added: Explicit dependency on the slots it uses
-  # depends_on = [
-  #  aws_lexv2models_slot.source_text,
-  #  aws_lexv2models_slot.target_language
-  #]
 }
 
-# 5. Define the slots for the 'TranslateText' intent
-# Corrected: Added explicit values for allow_interrupt and message_selection_strategy
+# 7. Define the slots for the 'TranslateText' intent
 resource "aws_lexv2models_slot" "source_text" {
   name         = "sourceText"
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.intent_id
+  intent_id    = aws_lexv2models_intent.translate_text.id # Correctly use ID
   slot_type_id = "AMAZON.FreeFormInput"
+
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
-      max_retries = 2
-      
-      # Add these two lines to match AWS API defaults
+      max_retries                = 2
       allow_interrupt            = true
       message_selection_strategy = "Random"
-
       message_group {
         message {
           plain_text_message {
@@ -106,28 +103,25 @@ resource "aws_lexv2models_slot" "source_text" {
     }
   }
 }
-# Corrected: Renamed to aws_lexv2models_slot
-# Corrected: Added explicit values for allow_interrupt and message_selection_strategy
+
 resource "aws_lexv2models_slot" "target_language" {
   name         = "targetLanguage"
   bot_id       = aws_lexv2models_bot.translation_bot.id
   bot_version  = "DRAFT"
   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
-  intent_id    = aws_lexv2models_intent.translate_text.intent_id
-  slot_type_id = aws_lexv2models_slot_type.language.slot_type_id
+  intent_id    = aws_lexv2models_intent.translate_text.id # Correctly use ID
+  slot_type_id = aws_lexv2models_slot_type.language.id   # Correctly use ID
+
   value_elicitation_setting {
     slot_constraint = "Required"
     prompt_specification {
-      max_retries = 2
-
-      # Add these two lines to match AWS API defaults
+      max_retries                = 2
       allow_interrupt            = true
       message_selection_strategy = "Random"
-
       message_group {
         message {
           plain_text_message {
-             value = "Which language should I translate it to?"
+            value = "Which language should I translate it to?"
           }
         }
       }
@@ -135,33 +129,14 @@ resource "aws_lexv2models_slot" "target_language" {
   }
 }
 
-
-# 7. Grant Lex permission to invoke Lambda
-resource "aws_lambda_permission" "lex_invoke" {
-  statement_id  = "AllowLexToInvokeLambda"
-  action        = "lambda:InvokeFunction"
-  function_name = var.lambda_function_arn
-  principal     = "lex.amazonaws.com"
-
-  # Corrected: The source_arn now refers to the renamed aws_lex_bot_alias resource.
-  # Note that the V2 ARN format requires the bot ID and the alias ID.
-  # The aws_lex_bot_alias resource doesn't export the alias ID directly,
-  # so we construct the ARN with the bot ID and the alias name.
-  # A more robust solution might involve using the aws_lexv2models_bot_alias resource
-  # if your provider version supports it.
-   source_arn = aws_lex_bot_alias.live.arn
-}
-
 # 8. Create a version of the bot from the DRAFT
-# Corrected: Renamed to aws_lexv2models_bot_version
 resource "aws_lexv2models_bot_version" "v1" {
-  bot_id    = aws_lexv2models_bot.translation_bot.id
+  bot_id  = aws_lexv2models_bot.translation_bot.id
   locale_specification = {
     (aws_lexv2models_bot_locale.en_us.locale_id) = {
       source_bot_version = "DRAFT"
     }
   }
-  # Ensure all intents and slots are created before versioning
   depends_on = [
     aws_lexv2models_intent.translate_text,
     aws_lexv2models_slot.source_text,
@@ -169,28 +144,30 @@ resource "aws_lexv2models_bot_version" "v1" {
   ]
 }
 
-# 9. Create a stable alias that points to our new version and connects the Lambda
-# Corrected: Renamed to aws_lex_bot_alias
-resource "aws_lex_bot_alias" "live" {
-  bot_name = aws_lexv2models_bot.translation_bot.name # Use the bot name here
-  name     = "live"                                   # Alias name
+# 9. Create a stable alias that points to our new version
+# THIS IS THE CORRECT V2 ALIAS RESOURCE
+resource "aws_lexv2models_bot_alias" "live" {
+  name        = "live"
+  bot_id      = aws_lexv2models_bot.translation_bot.id
   bot_version = aws_lexv2models_bot_version.v1.bot_version
-# ADD THIS BLOCK to explicitly tell the alias to wait for the roles.
-      depends_on = [
-        aws_iam_service_linked_role.lex,
-        aws_iam_service_linked_role.lexv2
-        ]
 
-  conversation_logs {
-    
-    iam_role_arn = aws_iam_service_linked_role.lexv2.arn
-    log_settings {
-      destination = "CLOUDWATCH_LOGS"
-      log_type    = "TEXT"
-      resource_arn = "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/lex/${var.bot_name}" # Example log group, adjust as needed
+  bot_alias_locale_settings {
+    enabled   = true
+    locale_id = aws_lexv2models_bot_locale.en_us.locale_id
+    code_hook_specification {
+      lambda_code_hook {
+        code_hook_interface_version = "1.0"
+        lambda_arn                  = var.lambda_function_arn
+      }
     }
   }
-  
-  # The Lambda integration is configured differently in this resource
-  # It's often handled at the intent level or through conversation logs
+}
+
+# 10. Grant Lex permission to invoke Lambda
+resource "aws_lambda_permission" "lex_invoke" {
+  statement_id  = "AllowLexToInvokeLambda"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_function_arn
+  principal     = "lexv2.amazonaws.com"
+  source_arn    = aws_lexv2models_bot_alias.live.arn
 }
