@@ -10,7 +10,7 @@ resource "aws_lexv2models_bot" "translation_bot" {
     child_directed = false
   }
   idle_session_ttl_in_seconds = 300
-  role_arn                    = aws_iam_role.lex_bot_role.arn # Note: Using a proper execution role
+  role_arn = aws_iam_service_linked_role.lexv2.arn
 
 }
 
@@ -138,7 +138,7 @@ resource "aws_lambda_permission" "lex_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
   principal     = "lexv2.amazonaws.com" # Corrected: Use V2 principal
-  source_arn    = aws_lexv2models_bot_alias.live.arn # Corrected: Source from V2 alias
+  source_arn    = aws_lex_bot_alias.live.arn # Corrected: Source from V2 alias
 }
 
 # 8. Create a version of the bot from the DRAFT
@@ -179,4 +179,29 @@ resource "aws_lex_bot_alias" "live" {
   
   # The Lambda integration is configured differently in this resource
   # It's often handled at the intent level or through conversation logs
+}
+resource "aws_lexv2models_bot_alias" "example_alias" {
+  bot_alias_name = "MyBotAlias"
+  bot_id         = "YOUR_BOT_ID"
+  bot_version    = "DRAFT"
+  description    = "My bot alias description"
+
+  sentiment_analysis_settings {
+    detect_sentiment = false
+  }
+
+  conversation_log_settings {
+    audio_log_settings {
+      destination {
+        s3_bucket = "your-s3-bucket-name"
+      }
+      enabled = true
+    }
+    text_log_settings {
+      destination {
+        cloudwatch_log_group = "my-lex-log-group"
+      }
+      enabled = true
+    }
+  }
 }
