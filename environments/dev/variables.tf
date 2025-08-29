@@ -10,9 +10,3 @@ variable "project_name" {
   description = "A name for the project, used to prefix resource names."
   type        = string
 }
-
-variable "bot_name" {
-  description = "The name of the Lex bot"
-  type        = string
-  default     = "TranslationBotV1"
-}
