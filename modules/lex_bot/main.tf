@@ -192,9 +192,7 @@ resource "aws_lexv2models_bot_alias" "example_alias" {
 
   conversation_log_settings {
     audio_log_settings {
-      destination {
-        s3_bucket = "your-s3-bucket-name"
-      }
+      
       enabled = true
     }
     text_log_settings {
