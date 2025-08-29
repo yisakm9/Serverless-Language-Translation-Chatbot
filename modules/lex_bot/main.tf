@@ -3,10 +3,6 @@ resource "aws_iam_service_linked_role" "lexv2" {
   aws_service_name = "lexv2.amazonaws.com"
 }
 
-# which the aws_lex_bot_alias resource implicitly requires.
-resource "aws_iam_service_linked_role" "lex" {
-  aws_service_name = "lex.amazonaws.com"
-}
 # Corrected: Renamed to aws_lexv2models_bot
 resource "aws_lexv2models_bot" "translation_bot" {
   name                        = var.bot_name
@@ -14,7 +10,7 @@ resource "aws_lexv2models_bot" "translation_bot" {
     child_directed = false
   }
   idle_session_ttl_in_seconds = 300
-  role_arn = aws_iam_service_linked_role.lexv2.arn
+  role_arn                    = aws_iam_role.lex_bot_role.arn # Note: Using a proper execution role
 
 }
 
@@ -141,15 +137,8 @@ resource "aws_lambda_permission" "lex_invoke" {
   statement_id  = "AllowLexToInvokeLambda"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
-  principal     = "lex.amazonaws.com"
-
-  # Corrected: The source_arn now refers to the renamed aws_lex_bot_alias resource.
-  # Note that the V2 ARN format requires the bot ID and the alias ID.
-  # The aws_lex_bot_alias resource doesn't export the alias ID directly,
-  # so we construct the ARN with the bot ID and the alias name.
-  # A more robust solution might involve using the aws_lexv2models_bot_alias resource
-  # if your provider version supports it.
-   source_arn = aws_lex_bot_alias.live.arn
+  principal     = "lexv2.amazonaws.com" # Corrected: Use V2 principal
+  source_arn    = aws_lexv2models_bot_alias.live.arn # Corrected: Source from V2 alias
 }
 
 # 8. Create a version of the bot from the DRAFT
@@ -176,10 +165,7 @@ resource "aws_lex_bot_alias" "live" {
   name     = "live"                                   # Alias name
   bot_version = aws_lexv2models_bot_version.v1.bot_version
 # ADD THIS BLOCK to explicitly tell the alias to wait for the roles.
-      depends_on = [
-        aws_iam_service_linked_role.lex,
-        aws_iam_service_linked_role.lexv2
-        ]
+      depends_on = [   aws_iam_service_linked_role.lexv2        ]
 
   conversation_logs {
     
