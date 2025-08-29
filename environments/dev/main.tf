@@ -29,6 +29,10 @@ module "lambda_function" {
 module "lex_bot" {
   source = "../../modules/lex_bot" # Path to the module
 
+  providers = {
+    aws = aws
+  }
+
   # Corrected: Replaced all hyphens with underscores to create a valid name.
   bot_name            = "${replace(var.project_name, "-", "_")}_bot_dev"
   
