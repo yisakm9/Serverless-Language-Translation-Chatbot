@@ -11,6 +11,9 @@ resource "aws_lexv2models_bot" "translation_bot" {
   }
   idle_session_ttl_in_seconds = 300
   role_arn = aws_iam_service_linked_role.lexv2.arn
+  # It's good practice to add a dependency here.
+  depends_on = [aws_iam_service_linked_role.lexv2]
+
 
 }
 
@@ -132,15 +135,16 @@ resource "aws_lexv2models_slot" "target_language" {
 }
 
 
-# 7. Grant Lex permission to invoke Lambda
+# 8. CORRECTED: Grant Lex permission to invoke Lambda
 resource "aws_lambda_permission" "lex_invoke" {
   statement_id  = "AllowLexToInvokeLambda"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
-  principal     = "lexv2.amazonaws.com" # Corrected: Use V2 principal
-  source_arn    = aws_lex_bot_alias.live.arn # Corrected: Source from V2 alias
+  principal     = "lexv2.amazonaws.com"
+  
+  # The source ARN for a Lex V2 alias has a specific format.
+  source_arn    = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/${awscc_lex_bot_alias.live.bot_alias_id}"
 }
-
 # 8. Create a version of the bot from the DRAFT
 # Corrected: Renamed to aws_lexv2models_bot_version
 resource "aws_lexv2models_bot_version" "v1" {
@@ -152,7 +156,7 @@ resource "aws_lexv2models_bot_version" "v1" {
   }
   # Ensure all intents and slots are created before versioning
   depends_on = [
-    aws_lexv2models_intent.translate_text,
+    #aws_lexv2models_intent.translate_text,
     aws_lexv2models_slot.source_text,
     aws_lexv2models_slot.target_language
   ]
@@ -160,46 +164,25 @@ resource "aws_lexv2models_bot_version" "v1" {
 
 # 9. Create a stable alias that points to our new version and connects the Lambda
 # Corrected: Renamed to aws_lex_bot_alias
-resource "aws_lex_bot_alias" "live" {
-  bot_name = aws_lexv2models_bot.translation_bot.name # Use the bot name here
-  name     = "live"                                   # Alias name
-  bot_version = aws_lexv2models_bot_version.v1.bot_version
-# ADD THIS BLOCK to explicitly tell the alias to wait for the roles.
-      depends_on = [   aws_iam_service_linked_role.lexv2        ]
+# 7. CORRECTED: Create a stable alias using the AWSCC provider
+resource "awscc_lex_bot_alias" "live" {
+  bot_id       = aws_lexv2models_bot.translation_bot.id
+  bot_alias_name = "live"
+  bot_version  = aws_lexv2models_bot_version.v1.bot_version
 
-  conversation_logs {
-    
-    iam_role_arn = aws_iam_service_linked_role.lexv2.arn
-    log_settings {
-      destination = "CLOUDWATCH_LOGS"
-      log_type    = "TEXT"
-      resource_arn = "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/lex/${var.bot_name}" # Example log group, adjust as needed
+  # This is where you configure the Lambda integration for the alias
+  bot_alias_locale_settings {
+    enabled   = true
+    locale_id = aws_lexv2models_bot_locale.en_us.locale_id
+    code_hook_specification {
+      lambda_code_hook {
+        code_hook_interface_version = "1.0"
+        lambda_arn                  = var.lambda_function_arn
+      }
     }
   }
   
-  # The Lambda integration is configured differently in this resource
-  # It's often handled at the intent level or through conversation logs
-}
-resource "aws_lexv2models_bot_alias" "example_alias" {
-  bot_alias_name = "MyBotAlias"
-  bot_id         = "YOUR_BOT_ID"
-  bot_version    = "DRAFT"
-  description    = "My bot alias description"
-
-  sentiment_analysis_settings {
-    detect_sentiment = false
-  }
-
-  conversation_log_settings {
-    audio_log_settings {
-      
-      enabled = true
-    }
-    text_log_settings {
-      destination {
-        cloudwatch_log_group = "my-lex-log-group"
-      }
-      enabled = true
-    }
-  }
+  # The awscc provider handles dependencies automatically, but an explicit
+  # depends_on can be added if you face timing issues.
+  depends_on = [aws_lexv2models_bot_version.v1]
 }
