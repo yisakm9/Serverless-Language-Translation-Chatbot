@@ -141,7 +141,7 @@ resource "aws_lambda_permission" "lex_invoke" {
   statement_id  = "AllowLexToInvokeLambda"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
-  principal     = "lex.amazonaws.com"
+  principal     = "lexv2.amazonaws.com"
 
   # Corrected: The source_arn now refers to the renamed aws_lex_bot_alias resource.
   # Note that the V2 ARN format requires the bot ID and the alias ID.
@@ -193,4 +193,21 @@ resource "aws_lex_bot_alias" "live" {
   
   # The Lambda integration is configured differently in this resource
   # It's often handled at the intent level or through conversation logs
+}
+# IAM Role for the Lex Bot to execute and call other services (like Lambda)
+resource "aws_iam_role" "lex_bot_role" {
+  name = "${var.bot_name}-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lexv2.amazonaws.com"
+        }
+      },
+    ]
+  })
 }
