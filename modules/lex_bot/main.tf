@@ -6,7 +6,7 @@ resource "aws_iam_service_linked_role" "lex" {
 
 # 1. Define the custom slot type for languages
 resource "aws_lex_slot_type" "language" {
-  name        = "Language"
+  name        = "Language2"
   description = "Slot type for target languages"
   enumeration_value {
     value = "Spanish"
