@@ -142,7 +142,7 @@ resource "aws_lambda_permission" "lex_invoke" {
   function_name = var.lambda_function_arn
   principal     = "lexv2.amazonaws.com"
   
-  # The source ARN for a Lex V2 alias has a specific format.
+   # The source ARN for a Lex V2 alias has a specific format.
   source_arn    = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/${awscc_lex_bot_alias.live.bot_alias_id}"
 }
 # 8. Create a version of the bot from the DRAFT
@@ -163,26 +163,29 @@ resource "aws_lexv2models_bot_version" "v1" {
 }
 
 # 9. Create a stable alias that points to our new version and connects the Lambda
-# Corrected: Renamed to aws_lex_bot_alias
 # 7. CORRECTED: Create a stable alias using the AWSCC provider
 resource "awscc_lex_bot_alias" "live" {
-  bot_id       = aws_lexv2models_bot.translation_bot.id
+  bot_id         = aws_lexv2models_bot.translation_bot.id
   bot_alias_name = "live"
-  bot_version  = aws_lexv2models_bot_version.v1.bot_version
+  bot_version    = aws_lexv2models_bot_version.v1.bot_version
 
-  # This is where you configure the Lambda integration for the alias
-  bot_alias_locale_settings {
-    enabled   = true
-    locale_id = aws_lexv2models_bot_locale.en_us.locale_id
-    code_hook_specification {
-      lambda_code_hook {
-        code_hook_interface_version = "1.0"
-        lambda_arn                  = var.lambda_function_arn
+  # CORRECTED SYNTAX: This is an argument that expects a "Set", which is a list in HCL.
+  bot_alias_locale_settings = [
+    {
+      enabled   = true
+      locale_id = aws_lexv2models_bot_locale.en_us.locale_id
+      
+      # This is a nested object within the Set
+      bot_alias_locale_setting = {
+        code_hook_specification = {
+          lambda_code_hook = {
+            code_hook_interface_version = "1.0"
+            lambda_arn                  = var.lambda_function_arn
+          }
+        }
       }
     }
-  }
-  
-  # The awscc provider handles dependencies automatically, but an explicit
-  # depends_on can be added if you face timing issues.
+  ]
+
   depends_on = [aws_lexv2models_bot_version.v1]
 }
