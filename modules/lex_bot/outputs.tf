@@ -4,7 +4,7 @@ output "bot_id" {
   description = "The unique ID of the Lex bot."
   value       = aws_lexv2models_bot.translation_bot.id
 }
-
+/*
 output "bot_alias_name" {
   description = "The name of the bot alias."
   # Corrected: Referencing the aws_lex_bot_alias resource we fixed earlier.
@@ -17,3 +17,4 @@ output "bot_alias_arn" {
   # Corrected: The aws_lex_bot_alias resource directly provides the ARN as an attribute.
   value       = aws_lex_bot_alias.live.arn
 }
+*/
