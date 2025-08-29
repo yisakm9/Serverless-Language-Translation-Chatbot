@@ -136,16 +136,14 @@ resource "aws_lexv2models_slot" "target_language" {
 
 
 # 8. CORRECTED: Grant Lex permission to invoke Lambda
+#8. Lambda permission resource remains the same
 resource "aws_lambda_permission" "lex_invoke" {
   statement_id  = "AllowLexToInvokeLambda"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_function_arn
   principal     = "lexv2.amazonaws.com"
-  
-   # The source ARN for a Lex V2 alias has a specific format.
   source_arn    = "arn:aws:lex:${var.aws_region}:${var.aws_account_id}:bot-alias/${aws_lexv2models_bot.translation_bot.id}/${awscc_lex_bot_alias.live.bot_alias_id}"
-}
-# 8. Create a version of the bot from the DRAFT
+}# 8. Create a version of the bot from the DRAFT
 # Corrected: Renamed to aws_lexv2models_bot_version
 resource "aws_lexv2models_bot_version" "v1" {
   bot_id    = aws_lexv2models_bot.translation_bot.id
